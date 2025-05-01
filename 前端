@@ -1,1 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Braille Board</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    canvas {
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      display: block;
+    }
+    #submit {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 100%;  /* 加寬 */
+      height: 200px;  /* 保持高度 */
+      border-radius: 0; /* 邊角小圓滑（10px），也可以設0變成完全直角 */
+      background-color: #007BFF;
+      color: white;
+      font-size: 20px; /* 字也可以變大一點 */
+      border: none;
+      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+    }
+    #submit:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="brailleCanvas"></canvas>
+  <button id="submit">Go</button>
+  <script>
+    const canvas = document.getElementById('brailleCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  
+    const groupCount = 5; // 五組
+    const groupSpacingX = 80; // 組跟組之間的間距
+    const dotSpacing = 10; // 同一組裡，點與點之間的距離
+    const dotRadius = 2; // 點大小
+    const baseX = 100; // 起始 X 位置
+    const baseY = 100; // 起始 Y 位置
+  
+    const dotStates = Array.from({ length: groupCount }, () => [0, 0, 0, 0, 0, 0]);
+  
+    const labels = [];
+    for (let g = 0; g < groupCount; g++) {
+      const groupLabel = String.fromCharCode(97 + g); // a, b, c, d, e
+      for (let i = 1; i <= 6; i++) {
+        labels.push(groupLabel + i);
+      }
+    }
+  
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let g = 0; g < groupCount; g++) {
+        for (let i = 0; i < 6; i++) {
+          const col = (i >= 3) ? 1 : 0;
+          const row = i % 3;
+          const x = baseX + g * groupSpacingX + col * dotSpacing;
+          const y = baseY + row * dotSpacing;
+          ctx.beginPath();
+          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          ctx.fillStyle = dotStates[g][i] ? 'black' : 'lightgray';
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+    }
+  
+    function detectDot(x, y) {
+      for (let g = 0; g < groupCount; g++) {
+        for (let i = 0; i < 6; i++) {
+          const col = (i >= 3) ? 1 : 0;
+          const row = i % 3;
+          const cx = baseX + g * groupSpacingX + col * dotSpacing;
+          const cy = baseY + row * dotSpacing;
+          const dx = x - cx;
+          const dy = y - cy;
+          if (Math.sqrt(dx * dx + dy * dy) < dotRadius * 2) {
+            dotStates[g][i] = 1 - dotStates[g][i];
+            console.log('Toggled', labels[g * 6 + i], 'State:', dotStates[g][i]);
+            draw();
+            return;
+          }
+        }
+      }
+    }
+  
+    function speakSequence(names) {
+      if (names.length === 0) return;
+  
+      let index = 0;
+  
+      function speakNext() {
+        if (index < names.length) {
+          let nameToSpeak = names[index];
+          nameToSpeak = nameToSpeak[0] + ' ' + nameToSpeak.slice(1); 
+          const utterance = new SpeechSynthesisUtterance(nameToSpeak);
+
+          utterance.onend = () => {
+            setTimeout(() => {
+              index++;
+              speakNext();
+            }, 500); // 每個點之間間隔 500ms
+          };
+          speechSynthesis.speak(utterance);
+        }
+      }
+  
+      speakNext();
+    }
+  
+    canvas.addEventListener('pointerdown', e => {
+      detectDot(e.clientX, e.clientY);
+    });
+  
+    const submitBtn = document.getElementById('submit');
+    submitBtn.addEventListener('click', () => {
+      const selectedLabels = [];
+  
+      for (let g = 0; g < groupCount; g++) {
+        for (let i = 0; i < 6; i++) {
+          if (dotStates[g][i] === 1) {
+            selectedLabels.push(labels[g * 6 + i]);
+          }
+        }
+      }
+  
+      console.log('Selected:', selectedLabels.join(', '));
+  
+      speakSequence(selectedLabels);
+  
+      // 清除所有點
+      dotStates.forEach(group => group.fill(0));
+      draw();
+    });
+  
+    draw();
+  </script>
+  
+  
+</body>
+</html>
 
