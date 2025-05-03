@@ -18,18 +18,20 @@
     }
     #submit {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 100%;  /* 加寬 */
-      height: 200px;  /* 保持高度 */
-      border-radius: 0; /* 邊角小圓滑（10px），也可以設0變成完全直角 */
+      bottom: 0;
+      left: 0;          /* 保證貼齊左邊 */
+      width: 100vw;     /* 確保滿版寬度 */
+      height: 400px;    /* 放大高度 */
+      border-radius: 0;
       background-color: #007BFF;
       color: white;
-      font-size: 20px; /* 字也可以變大一點 */
+      font-size: 48px;
+      font-weight: bold;
       border: none;
-      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
       cursor: pointer;
     }
+
     #submit:hover {
       background-color: #0056b3;
     }
@@ -43,32 +45,37 @@
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-  
-    const groupCount = 5; // 五組
-    const groupSpacingX = 80; // 組跟組之間的間距
-    const dotSpacing = 10; // 同一組裡，點與點之間的距離
-    const dotRadius = 2; // 點大小
-    const baseX = 100; // 起始 X 位置
-    const baseY = 100; // 起始 Y 位置
-  
+
+    const groupCount = 48;
+    const groupsPerRow = 12;
+    const groupSpacingX = 80;
+    const groupSpacingY = 80;
+    const dotSpacing = 10;
+    const dotRadius = 2;
+    const baseX = 100;
+    const baseY = 100;
+
     const dotStates = Array.from({ length: groupCount }, () => [0, 0, 0, 0, 0, 0]);
-  
+
     const labels = [];
     for (let g = 0; g < groupCount; g++) {
-      const groupLabel = String.fromCharCode(97 + g); // a, b, c, d, e
+      const groupLabel = String.fromCharCode(97 + (g % 26)) + Math.floor(g / 26); // a0–z0, a1–...
       for (let i = 1; i <= 6; i++) {
         labels.push(groupLabel + i);
       }
     }
-  
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let g = 0; g < groupCount; g++) {
+        const rowGroup = Math.floor(g / groupsPerRow);
+        const colGroup = g % groupsPerRow;
+
         for (let i = 0; i < 6; i++) {
           const col = (i >= 3) ? 1 : 0;
           const row = i % 3;
-          const x = baseX + g * groupSpacingX + col * dotSpacing;
-          const y = baseY + row * dotSpacing;
+          const x = baseX + colGroup * groupSpacingX + col * dotSpacing;
+          const y = baseY + rowGroup * groupSpacingY + row * dotSpacing;
           ctx.beginPath();
           ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
           ctx.fillStyle = dotStates[g][i] ? 'black' : 'lightgray';
@@ -77,14 +84,17 @@
         }
       }
     }
-  
+
     function detectDot(x, y) {
       for (let g = 0; g < groupCount; g++) {
+        const rowGroup = Math.floor(g / groupsPerRow);
+        const colGroup = g % groupsPerRow;
+
         for (let i = 0; i < 6; i++) {
           const col = (i >= 3) ? 1 : 0;
           const row = i % 3;
-          const cx = baseX + g * groupSpacingX + col * dotSpacing;
-          const cy = baseY + row * dotSpacing;
+          const cx = baseX + colGroup * groupSpacingX + col * dotSpacing;
+          const cy = baseY + rowGroup * groupSpacingY + row * dotSpacing;
           const dx = x - cx;
           const dy = y - cy;
           if (Math.sqrt(dx * dx + dy * dy) < dotRadius * 2) {
@@ -96,39 +106,36 @@
         }
       }
     }
-  
+
     function speakSequence(names) {
       if (names.length === 0) return;
-  
+
       let index = 0;
-  
       function speakNext() {
         if (index < names.length) {
           let nameToSpeak = names[index];
-          nameToSpeak = nameToSpeak[0] + ' ' + nameToSpeak.slice(1); 
+          nameToSpeak = nameToSpeak[0] + ' ' + nameToSpeak.slice(1);
           const utterance = new SpeechSynthesisUtterance(nameToSpeak);
-
           utterance.onend = () => {
             setTimeout(() => {
               index++;
               speakNext();
-            }, 500); // 每個點之間間隔 500ms
+            }, 500);
           };
           speechSynthesis.speak(utterance);
         }
       }
-  
       speakNext();
     }
-  
+
     canvas.addEventListener('pointerdown', e => {
       detectDot(e.clientX, e.clientY);
     });
-  
+
     const submitBtn = document.getElementById('submit');
     submitBtn.addEventListener('click', () => {
       const selectedLabels = [];
-  
+
       for (let g = 0; g < groupCount; g++) {
         for (let i = 0; i < 6; i++) {
           if (dotStates[g][i] === 1) {
@@ -136,19 +143,15 @@
           }
         }
       }
-  
+
       console.log('Selected:', selectedLabels.join(', '));
-  
       speakSequence(selectedLabels);
-  
-      // 清除所有點
+
       dotStates.forEach(group => group.fill(0));
       draw();
     });
-  
+
     draw();
   </script>
-  
-  
 </body>
 </html>
