@@ -23,8 +23,8 @@
       width: 100vw;     /* 確保滿版寬度 */
       height: 400px;    /* 放大高度 */
       border-radius: 0;
-      background-color: #007BFF;
-      color: white;
+      background-color: #ffffff;
+      color: rgb(0, 0, 0);
       font-size: 48px;
       font-weight: bold;
       border: none;
@@ -46,24 +46,29 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const groupCount = 48;
-    const groupsPerRow = 12;
-    const groupSpacingX = 80;
-    const groupSpacingY = 80;
+    const groupCount = 112;
+    const groupsPerRow = 28;
+    const groupSpacingX = 30;
+    const groupSpacingY = 60;
     const dotSpacing = 10;
     const dotRadius = 2;
-    const baseX = 100;
+
+    // 水平置中，垂直固定
+    const totalWidth = (groupsPerRow - 1) * groupSpacingX + dotSpacing;
+    const baseX = (canvas.width - totalWidth) / 2;
     const baseY = 100;
+
+
 
     const dotStates = Array.from({ length: groupCount }, () => [0, 0, 0, 0, 0, 0]);
 
     const labels = [];
-    for (let g = 0; g < groupCount; g++) {
-      const groupLabel = String.fromCharCode(97 + (g % 26)) + Math.floor(g / 26); // a0–z0, a1–...
-      for (let i = 1; i <= 6; i++) {
-        labels.push(groupLabel + i);
-      }
-    }
+for (let g = 0; g < groupCount; g++) {
+  for (let i = 1; i <= 6; i++) {
+    labels.push(`${g + 1}-${i}`);
+  }
+}
+
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -108,25 +113,25 @@
     }
 
     function speakSequence(names) {
-      if (names.length === 0) return;
+  if (names.length === 0) return;
 
-      let index = 0;
-      function speakNext() {
-        if (index < names.length) {
-          let nameToSpeak = names[index];
-          nameToSpeak = nameToSpeak[0] + ' ' + nameToSpeak.slice(1);
-          const utterance = new SpeechSynthesisUtterance(nameToSpeak);
-          utterance.onend = () => {
-            setTimeout(() => {
-              index++;
-              speakNext();
-            }, 500);
-          };
-          speechSynthesis.speak(utterance);
-        }
-      }
-      speakNext();
+  let index = 0;
+  function speakNext() {
+    if (index < names.length) {
+      let nameToSpeak = names[index].replace('-', ' dash ');
+      const utterance = new SpeechSynthesisUtterance(nameToSpeak);
+      utterance.onend = () => {
+        setTimeout(() => {
+          index++;
+          speakNext();
+        }, 500);
+      };
+      speechSynthesis.speak(utterance);
     }
+  }
+  speakNext();
+}
+
 
     canvas.addEventListener('pointerdown', e => {
       detectDot(e.clientX, e.clientY);
