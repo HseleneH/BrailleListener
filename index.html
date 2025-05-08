@@ -3,26 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <title>Braille Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
-      background: transparent;
-      overflow: hidden;
-    }
-    canvas {
-      width: auto;
       height: 100vh;
-      touch-action: none;
-      display: block;
-      margin: 0 auto; /* 水平置中 */
+      background-color: #f0f0f0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
+    #canvasWrapper {
+      width: 1280px;
+      height: 720px;
+      position: relative;
+      background: white;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
     #submit {
       position: absolute;
       bottom: 0;
       left: 0;
-      width: 100vw;
-      height: 400px;
+      width: 100%;
+      height: 350px;
       border-radius: 0;
       background-color: #ffffff;
       color: rgb(0, 0, 0);
@@ -32,31 +45,34 @@
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
       cursor: pointer;
     }
+
     #submit:hover {
       background-color: #0056b3;
+      color: white;
     }
   </style>
 </head>
 <body>
-  <canvas id="brailleCanvas"></canvas>
-  <button id="submit">Go</button>
+  <div id="canvasWrapper">
+    <canvas id="brailleCanvas"></canvas>
+    <button id="submit">Go</button>
+  </div>
 
   <script>
     const canvas = document.getElementById('brailleCanvas');
     const ctx = canvas.getContext('2d');
-    const sideMargin = 20;
-    canvas.width = window.innerWidth - sideMargin * 2;
-    canvas.height = window.innerHeight;
+    canvas.width = 1280;
+    canvas.height = 720;
 
     const groupCount = 112;
     const groupsPerRow = 28;
-    const groupSpacingX = 30;
+    const groupSpacingX = 35;
     const groupSpacingY = 60;
     const dotSpacing = 10;
-    const dotRadius = 2;
+    const dotRadius = 3;
 
     const totalWidth = (groupsPerRow - 1) * groupSpacingX + dotSpacing;
-    const baseX = sideMargin + (canvas.width - totalWidth) / 2;
+    const baseX = (canvas.width - totalWidth) / 2;
     const baseY = 100;
 
     const dotStates = Array.from({ length: groupCount }, () => [0, 0, 0, 0, 0, 0]);
@@ -89,6 +105,13 @@
     }
 
     function detectDot(x, y) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const relX = (x - rect.left) * scaleX;
+      const relY = (y - rect.top) * scaleY;
+
       for (let g = 0; g < groupCount; g++) {
         const rowGroup = Math.floor(g / groupsPerRow);
         const colGroup = g % groupsPerRow;
@@ -98,8 +121,8 @@
           const row = i % 3;
           const cx = baseX + colGroup * groupSpacingX + col * dotSpacing;
           const cy = baseY + rowGroup * groupSpacingY + row * dotSpacing;
-          const dx = x - cx;
-          const dy = y - cy;
+          const dx = relX - cx;
+          const dy = relY - cy;
           if (Math.sqrt(dx * dx + dy * dy) < dotRadius * 2) {
             dotStates[g][i] = 1 - dotStates[g][i];
             console.log('Toggled', labels[g * 6 + i], 'State:', dotStates[g][i]);
@@ -131,11 +154,10 @@
     }
 
     canvas.addEventListener('pointerdown', e => {
-      detectDot(e.clientX - canvas.getBoundingClientRect().left, e.clientY);
+      detectDot(e.clientX, e.clientY);
     });
 
-    const submitBtn = document.getElementById('submit');
-    submitBtn.addEventListener('click', () => {
+    document.getElementById('submit').addEventListener('click', () => {
       const selectedLabels = [];
 
       for (let g = 0; g < groupCount; g++) {
