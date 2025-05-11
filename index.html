@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Braille Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background-color: #f0f0f0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #canvasWrapper {
+      width: 1280px;
+      height: 720px;
+      position: relative;
+      background: white;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #submit {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 350px;
+      border-radius: 0;
+      background-color: #ffffff;
+      color: rgb(0, 0, 0);
+      font-size: 48px;
+      font-weight: bold;
+      border: none;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+
+    #submit:hover {
+      background-color: #0056b3;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvasWrapper">
+    <canvas id="brailleCanvas"></canvas>
+    <button id="submit">Go</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('brailleCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1280;
+    canvas.height = 720;
+
+    const groupCount = 112;
+    const groupsPerRow = 28;
+    const groupSpacingX = 35;
+    const groupSpacingY = 50;
+    const dotSpacing = 10;
+    const dotRadius = 3;
+
+    const totalWidth = (groupsPerRow - 1) * groupSpacingX + dotSpacing;
+    const baseX = (canvas.width - totalWidth) / 2;
+    const baseY = 100;
+
+    const dotStates = Array.from({ length: groupCount }, () => [0, 0, 0, 0, 0, 0]);
+
+    const labels = [];
+    for (let g = 0; g < groupCount; g++) {
+      for (let i = 1; i <= 6; i++) {
+        labels.push(`${g + 1}-${i}`);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let g = 0; g < groupCount; g++) {
+        const rowGroup = Math.floor(g / groupsPerRow);
+        const colGroup = g % groupsPerRow;
+
+        for (let i = 0; i < 6; i++) {
+          const col = (i >= 3) ? 1 : 0;
+          const row = i % 3;
+          const x = baseX + colGroup * groupSpacingX + col * dotSpacing;
+          const y = baseY + rowGroup * groupSpacingY + row * dotSpacing;
+          ctx.beginPath();
+          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          ctx.fillStyle = dotStates[g][i] ? 'black' : 'lightgray';
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+    }
+
+    function detectDot(x, y) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const relX = (x - rect.left) * scaleX;
+      const relY = (y - rect.top) * scaleY;
+
+      for (let g = 0; g < groupCount; g++) {
+        const rowGroup = Math.floor(g / groupsPerRow);
+        const colGroup = g % groupsPerRow;
+
+        for (let i = 0; i < 6; i++) {
+          const col = (i >= 3) ? 1 : 0;
+          const row = i % 3;
+          const cx = baseX + colGroup * groupSpacingX + col * dotSpacing;
+          const cy = baseY + rowGroup * groupSpacingY + row * dotSpacing;
+          const dx = relX - cx;
+          const dy = relY - cy;
+          if (Math.sqrt(dx * dx + dy * dy) < dotRadius * 2) {
+            dotStates[g][i] = 1 - dotStates[g][i];
+            console.log('Toggled', labels[g * 6 + i], 'State:', dotStates[g][i]);
+            draw();
+            return;
+          }
+        }
+      }
+    }
+
+    function speakSequence(names) {
+      if (names.length === 0) return;
+
+      let index = 0;
+      function speakNext() {
+        if (index < names.length) {
+          let nameToSpeak = names[index].replace('-', ' dash ');
+          const utterance = new SpeechSynthesisUtterance(nameToSpeak);
+          utterance.onend = () => {
+            setTimeout(() => {
+              index++;
+              speakNext();
+            }, 500);
+          };
+          speechSynthesis.speak(utterance);
+        }
+      }
+      speakNext();
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+      detectDot(e.clientX, e.clientY);
+    });
+
+    document.getElementById('submit').addEventListener('click', () => {
+      const selectedLabels = [];
+
+      for (let g = 0; g < groupCount; g++) {
+        for (let i = 0; i < 6; i++) {
+          if (dotStates[g][i] === 1) {
+            selectedLabels.push(labels[g * 6 + i]);
+          }
+        }
+      }
+
+      console.log('Selected:', selectedLabels.join(', '));
+      speakSequence(selectedLabels);
+
+      dotStates.forEach(group => group.fill(0));
+      draw();
+    });
+
+    draw();
+  </script>
+</body>
+</html>
