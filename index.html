@@ -133,13 +133,48 @@
       }
     }
 
-    function speakSequence(names) {
-      if (names.length === 0) return;
+function conditionTextFromNames(names) {
+      // 初始化 112 組點狀態
+      const states = Array.from({ length: groupCount }, () => [0, 0, 0, 0, 0, 0]);
+
+      // 將 names 裡面的 "x-y" 標記設為 1
+      for (const name of names) {
+        const [groupStr, dotStr] = name.split('-');
+        const group = parseInt(groupStr) - 1;  // 轉為 index
+        const dot = parseInt(dotStr) - 1;
+        if (group >= 0 && group < groupCount && dot >= 0 && dot < 6) {
+          states[group][dot] = 1;
+        }
+      }
+
+      // 點字對照表：key 為6位二進位字串，value 為英文字母
+      const brailleMap = {
+        '100000': 'A', '110000': 'B', '100100': 'C', '100110': 'D', '100010': 'E',
+        '110100': 'F', '110110': 'G', '110010': 'H', '111111': 'I', '111111': 'J',
+        '111111': 'K', '111111': 'L', '111111': 'M', '111111': 'N', '111111': 'O',
+        '111111': 'P', '111111': 'Q', '111111': 'R', '111111': 'S', '111111': 'T',
+        '111111': 'U', '111111': 'V', '111111': 'W', '111111': 'X', '111111': 'Y', '111111': 'Z'
+      };
+
+      // 結果字串
+      let result = '';
+      for (let g = 0; g < groupCount; g++) {
+        const bits = states[g].join('');
+        if (bits.includes('1')) {
+          result += brailleMap[bits] || '?';
+        }
+      }
+
+      return result;
+    }
+
+    function speakSequence(texts) {
+      if (texts.length === 0) return;
 
       let index = 0;
       function speakNext() {
-        if (index < names.length) {
-          let nameToSpeak = names[index].replace('-', ' dash ');
+        if (index < texts.length) {
+          let nameToSpeak = texts[index];
           const utterance = new SpeechSynthesisUtterance(nameToSpeak);
           utterance.onend = () => {
             setTimeout(() => {
@@ -169,7 +204,11 @@
       }
 
       console.log('Selected:', selectedLabels.join(', '));
-      speakSequence(selectedLabels);
+    //判斷完字的陣列text
+    //selectedLabels就是names(原本傳入的names["1-1"])
+    let texts = conditionTextFromNames(selectedLabels).split('');
+    //讓字念出來
+    speakSequence(texts);
 
       dotStates.forEach(group => group.fill(0));
       draw();
