@@ -91,23 +91,23 @@
         const colGroup = g % groupsPerRow;
 
         for (let i = 0; i < 6; i++) {
-          const col = (i >= 3) ? 1 : 0;
-          const row = i % 3;
+          const col = (i >= 3) ? 1 : 0;// 前三個點在左欄，後三個點在右欄
+          const row = i % 3;// 三列
           const x = baseX + colGroup * groupSpacingX + col * dotSpacing;
           const y = baseY + rowGroup * groupSpacingY + row * dotSpacing;
           ctx.beginPath();
-          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);// 畫一個圓
           ctx.fillStyle = dotStates[g][i] ? 'black' : 'lightgray';
           ctx.fill();
-          ctx.stroke();
+          ctx.stroke();// 描邊
         }
       }
     }
 
     function detectDot(x, y) {
-      const rect = canvas.getBoundingClientRect();
+      const rect = canvas.getBoundingClientRect();//實際位置與尺寸
       const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const scaleY = canvas.height / rect.height;//寬高換算
 
       const relX = (x - rect.left) * scaleX;
       const relY = (y - rect.top) * scaleY;
@@ -124,7 +124,7 @@
           const dx = relX - cx;
           const dy = relY - cy;
           if (Math.sqrt(dx * dx + dy * dy) < dotRadius * 2) {
-            dotStates[g][i] = 1 - dotStates[g][i];
+            dotStates[g][i] = 1 - dotStates[g][i];//狀態從 0 變 1，或從 1 變 0
             console.log('Toggled', labels[g * 6 + i], 'State:', dotStates[g][i]);
             draw();
             return;
@@ -149,11 +149,11 @@ function conditionTextFromNames(names) {
 
       // 點字對照表：key 為6位二進位字串，value 為英文字母
       const brailleMap = {
-        '000100': 'A', '000110': 'B', '100100': 'C', '110100': 'D', '010100': 'E',
-        '100110': 'F', '110110': 'G', '010110': 'H', '100010': 'I', '110010': 'J',
-        '000101': 'K', '000111': 'L', '100101': 'M', '110101': 'N', '010101': 'O',
-        '100111': 'P', '110111': 'Q', '010111': 'R', '100011': 'S', '110011': 'T',
-        '001101': 'U', '001111': 'V', '111010': 'W', '101101': 'X', '111101': 'Y', '011101': 'Z'
+        '100000': 'A', '110000': 'B', '100100': 'C', '100110': 'D', '100010': 'E',
+        '110100': 'F', '110110': 'G', '110010': 'H', '010100': 'I', '010110': 'J',
+        '101000': 'K', '111000': 'L', '101100': 'M', '101110': 'N', '101010': 'O',
+        '111100': 'P', '111110': 'Q', '111010': 'R', '011100': 'S', '011110': 'T',
+        '101001': 'U', '111001': 'V', '010111': 'W', '101101': 'X', '101111': 'Y', '101011': 'Z'
       };
 
       // 結果字串
